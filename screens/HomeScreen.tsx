@@ -17,9 +17,9 @@ export default function HomeScreen() {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
   const [rides, setRides] = useState<Ride[]>([]);
-  const [totalDistanceKm, setTotalDistanceKm] = useState<number | null>(null);
+  const [vehicleType, setVehicleType] = useState<string | null>(null);
+  const [passengerCount, setPassengerCount] = useState<number | null>(null);
   const [tripsCount, setTripsCount] = useState<number | null>(null);
-  const [coins, setCoins] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,11 +34,12 @@ export default function HomeScreen() {
       ]);
       setRides(data);
       if (stats) {
-        setTotalDistanceKm(stats.totalDistanceKm);
+        setVehicleType(stats.vehicleType || 'Car');
+        setPassengerCount(stats.passengerCount || 1);
         setTripsCount(stats.tripsCount);
-        setCoins(typeof stats.coins === 'number' ? stats.coins : env.COINS_DEFAULT);
       } else {
-        setCoins(env.COINS_DEFAULT);
+        setVehicleType('Car');
+        setPassengerCount(1);
       }
     } catch (e: any) {
       setError(e?.message || 'Failed to load rides');
@@ -78,8 +79,20 @@ export default function HomeScreen() {
         <View style={styles.grid}>
           <View style={styles.card}>
             <View style={styles.iconCircle}><Ionicons name="earth-outline" size={18} color={TEAL} /></View>
-            <Text style={styles.cardTitle}>{totalDistanceKm != null ? `${totalDistanceKm.toLocaleString()} km` : '—'}</Text>
-            <Text style={styles.cardSubtitle}>Total Distance</Text>
+            <Text style={styles.cardTitle}>
+              {(() => {
+                try {
+                  if (vehicleType != null) {
+                    return vehicleType;
+                  }
+                  return '—';
+                } catch (error) {
+                  console.warn('[HomeScreen] Error displaying vehicle type:', error);
+                  return '—';
+                }
+              })()}
+            </Text>
+            <Text style={styles.cardSubtitle}>Vehicle Type</Text>
           </View>
           <View style={styles.card}>
             <View style={styles.iconCircle}><Ionicons name="map-outline" size={18} color={TEAL} /></View>
@@ -88,8 +101,20 @@ export default function HomeScreen() {
           </View>
           <View style={styles.card}>
             <View style={styles.iconCircle}><Ionicons name="cash-outline" size={18} color={TEAL} /></View>
-            <Text style={styles.cardTitle}>{(coins ?? env.COINS_DEFAULT).toLocaleString()} Coins</Text>
-            <Text style={styles.cardSubtitle}>Coins Earned</Text>
+            <Text style={styles.cardTitle}>
+              {(() => {
+                try {
+                  if (passengerCount != null && !isNaN(passengerCount)) {
+                    return `${passengerCount} Passengers`;
+                  }
+                  return '1 Passenger';
+                } catch (error) {
+                  console.warn('[HomeScreen] Error displaying passenger count:', error);
+                  return '1 Passenger';
+                }
+              })()}
+            </Text>
+            <Text style={styles.cardSubtitle}>Passenger Count</Text>
           </View>
           <View style={styles.card}>
             <View style={styles.iconCircle}><Ionicons name="trophy-outline" size={18} color={TEAL} /></View>

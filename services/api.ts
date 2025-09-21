@@ -146,7 +146,7 @@ export type ProfilePayload = {
 export type AuthResponse = { token: string; user: { id: string; name: string; email: string } };
 export type RideItem = { id: string; title: string; date: string; status: 'Completed' | 'Upcoming'; place?: string; price?: string };
 export type BookingItem = { id: string; title: string; date: string; status: 'Confirmed' | 'Pending'; place?: string; price?: string };
-export type StatsResponse = { totalDistanceKm: number; tripsCount: number; coins?: number };
+export type StatsResponse = { totalDistanceKm: number; tripsCount: number; coins?: number; vehicleType?: string; passengerCount?: number };
 export type AccountResponse = {
   id: string;
   name: string;
