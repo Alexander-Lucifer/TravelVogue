@@ -1,8 +1,18 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import api, { AuthResponse, LoginPayload, SignupPayload, ProfilePayload } from '../services/api';
+import api, { LoginPayload, SignupPayload, ProfilePayload } from '../services/api';
 import Storage from '../utils/storage';
 
-export type AuthUser = AuthResponse['user'];
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  // Optional profile fields from backend
+  age?: number;
+  date_of_birth?: string;
+  gender?: string;
+  phone_number?: string;
+  aadhaar_number?: string;
+};
 
 export type AuthContextValue = {
   token: string | null;
@@ -82,6 +92,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           Storage.setItem('auth_token', nToken),
           Storage.setItem('auth_user', JSON.stringify(nUser)),
         ]);
+      }
+      // Fetch full profile and merge
+      try {
+        const prof = await api.getProfile(nToken);
+        if (prof && (prof.name || prof.email || prof.user_id)) {
+          const merged: AuthUser = {
+            id: (prof.user_id || prof.id || nUser.id) as string,
+            name: (prof.name || nUser.name) as string,
+            email: (prof.email || nUser.email) as string,
+            age: prof.age ?? nUser.age,
+            date_of_birth: prof.date_of_birth ?? nUser.date_of_birth,
+            gender: prof.gender ?? nUser.gender,
+            phone_number: prof.phone_number ?? nUser.phone_number,
+            aadhaar_number: prof.aadhaar_number ?? nUser.aadhaar_number,
+          };
+          setUser(merged);
+          if (Storage.isAvailable()) {
+            await Storage.setItem('auth_user', JSON.stringify(merged));
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Profile fetch after login failed:', (e as any)?.message);
       }
     } catch (e: any) {
       setError(e?.message || 'Login failed');
