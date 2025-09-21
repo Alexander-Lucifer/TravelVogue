@@ -81,16 +81,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const resp = await api.login(payload);
       const { token: nToken, user: nUser } = normalizeAuth(resp);
-      if (!nToken || !nUser) {
-        throw new Error('Invalid login response from server');
+      if (!nToken) {
+        throw new Error('Invalid login response from server (no token)');
       }
+      // Set token immediately so App navigates away from AuthScreen
       setToken(nToken);
-      setUser(nUser);
+      // Set at least a minimal user so UI can render; we'll enrich after profile fetch
+      const baseUser =
+        nUser || ({ id: 'unknown', name: 'User', email: '' } as AuthUser);
+      setUser(baseUser);
+      // eslint-disable-next-line no-console
+      console.log('[AUTH] login success, token set, fetching profile...');
       // persist
       if (Storage.isAvailable()) {
         await Promise.all([
           Storage.setItem('auth_token', nToken),
-          Storage.setItem('auth_user', JSON.stringify(nUser)),
+          Storage.setItem('auth_user', JSON.stringify(baseUser)),
         ]);
       }
       // Fetch full profile and merge
@@ -98,14 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const prof = await api.getProfile(nToken);
         if (prof && (prof.name || prof.email || prof.user_id)) {
           const merged: AuthUser = {
-            id: (prof.user_id || prof.id || nUser.id) as string,
-            name: (prof.name || nUser.name) as string,
-            email: (prof.email || nUser.email) as string,
-            age: prof.age ?? nUser.age,
-            date_of_birth: prof.date_of_birth ?? nUser.date_of_birth,
-            gender: prof.gender ?? nUser.gender,
-            phone_number: prof.phone_number ?? nUser.phone_number,
-            aadhaar_number: prof.aadhaar_number ?? nUser.aadhaar_number,
+            id: (prof.user_id || prof.id || baseUser.id) as string,
+            name: (prof.name || baseUser.name) as string,
+            email: (prof.email || baseUser.email) as string,
+            age: prof.age ?? baseUser.age,
+            date_of_birth: prof.date_of_birth ?? baseUser.date_of_birth,
+            gender: prof.gender ?? baseUser.gender,
+            phone_number: prof.phone_number ?? baseUser.phone_number,
+            aadhaar_number: prof.aadhaar_number ?? baseUser.aadhaar_number,
           };
           setUser(merged);
           if (Storage.isAvailable()) {
