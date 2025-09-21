@@ -72,15 +72,24 @@ export type CreateTripPayload = {
 export type CreateTripResponse = { id: string };
 
 export const api = {
-  login: (payload: LoginPayload) => request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  login: (payload: LoginPayload) =>
+    requestAbsolute<AuthResponse>('https://sih-km2r.onrender.com/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   // Use absolute endpoint per user request
-  signup: (payload: SignupPayload) => requestAbsolute<AuthResponse>('http://127.0.0.1:5000/auth/signup', { method: 'POST', body: JSON.stringify(payload) }),
+  signup: (payload: SignupPayload) => requestAbsolute<AuthResponse>('https://sih-km2r.onrender.com/auth/signup', { method: 'POST', body: JSON.stringify(payload) }),
   getRides: (token?: string) =>
     request<RideItem[]>('/rides', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     }),
   getBookings: (token?: string) =>
     request<BookingItem[]>('/bookings', {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }),
+  // Absolute endpoint provided by user for fetching user's trips
+  getMyTrips: (token?: string) =>
+    requestAbsolute<RideItem[]>('https://sih-km2r.onrender.com/my-trips', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     }),
   getStats: (token?: string) =>
@@ -92,7 +101,7 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     }),
   createTrip: (payload: CreateTripPayload, token?: string) =>
-    request<CreateTripResponse>('/trips', {
+    requestAbsolute<CreateTripResponse>('https://sih-km2r.onrender.com/add_trip', {
       method: 'POST',
       body: JSON.stringify(payload),
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,

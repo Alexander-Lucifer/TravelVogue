@@ -29,7 +29,7 @@ export default function HomeScreen() {
     setError(null);
     try {
       const [data, stats] = await Promise.all([
-        api.getRides(token || undefined),
+        api.getMyTrips(token || undefined),
         api.getStats(token || undefined).catch(() => null),
       ]);
       setRides(data);
