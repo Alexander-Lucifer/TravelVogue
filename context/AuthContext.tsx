@@ -52,6 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const resp = await api.login(payload);
+      if (!resp?.token || !resp?.user) {
+        throw new Error('Invalid login response from server');
+      }
       setToken(resp.token);
       setUser(resp.user);
       // persist
@@ -74,6 +77,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const resp = await api.signup(payload);
+      if (!resp?.token || !resp?.user) {
+        throw new Error('Invalid signup response from server');
+      }
       setToken(resp.token);
       setUser(resp.user);
       // persist
