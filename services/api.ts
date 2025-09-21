@@ -8,7 +8,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
-  const res = await fetch(url, { ...options, headers });
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 20000);
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers, signal: controller.signal });
+  } catch (e) {
+    clearTimeout(id);
+    throw { message: (e as Error)?.message || 'Network error', status: undefined } as ApiError;
+  }
+  clearTimeout(id);
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const body = isJson ? await res.json() : await res.text();
@@ -24,7 +33,16 @@ async function requestAbsolute<T>(url: string, options: RequestInit = {}): Promi
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
-  const res = await fetch(url, { ...options, headers });
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 20000);
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers, signal: controller.signal });
+  } catch (e) {
+    clearTimeout(id);
+    throw { message: (e as Error)?.message || 'Network error', status: undefined } as ApiError;
+  }
+  clearTimeout(id);
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const body = isJson ? await res.json() : await res.text();
