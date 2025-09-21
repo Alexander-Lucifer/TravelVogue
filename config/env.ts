@@ -11,6 +11,7 @@ export type AppConfig = {
   COINS_DEFAULT: number;
   GOOGLE_PLACES_API_KEY?: string;
   SECRET_KEY?: string;
+  DEBUG_NETWORK?: boolean;
 };
 
 const API_BASE_URL =
@@ -23,6 +24,7 @@ export const env: AppConfig = {
   COINS_DEFAULT: Number(nativeCfg.COINS_DEFAULT || globalCfg.COINS_DEFAULT || 1200),
   GOOGLE_PLACES_API_KEY: nativeCfg.GOOGLE_PLACES_API_KEY || globalCfg.GOOGLE_PLACES_API_KEY || undefined,
   SECRET_KEY: nativeCfg.SECRET_KEY || globalCfg.SECRET_KEY || '12345',
+  DEBUG_NETWORK: !!(nativeCfg.DEBUG_NETWORK ?? globalCfg.DEBUG_NETWORK ?? true),
 };
 
 export default env;

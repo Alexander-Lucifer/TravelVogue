@@ -2,6 +2,19 @@ import env from '../config/env';
 
 export type ApiError = { message: string; status?: number };
 
+function sanitizeBodyForLog(body?: any) {
+  if (!body) return body;
+  try {
+    const obj = typeof body === 'string' ? JSON.parse(body) : { ...body };
+    if (obj.password) obj.password = '***';
+    if (obj.confirm) obj.confirm = '***';
+    if (obj.aadhar) obj.aadhar = obj.aadhar.replace(/\d(?=\d{4})/g, '*');
+    return obj;
+  } catch {
+    return body;
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${env.API_BASE_URL}${path}`;
   const headers: Record<string, string> = {
@@ -12,6 +25,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const id = setTimeout(() => controller.abort(), 20000);
   let res: Response;
   try {
+    if (env.DEBUG_NETWORK) {
+      // eslint-disable-next-line no-console
+      console.log('[HTTP] ', options.method || 'GET', url, sanitizeBodyForLog(options.body as any));
+    }
     res = await fetch(url, { ...options, headers, signal: controller.signal });
   } catch (e) {
     clearTimeout(id);
@@ -23,7 +40,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const body = isJson ? await res.json() : await res.text();
   if (!res.ok) {
     const message = isJson ? (body?.message || 'Request failed') : (body as string) || 'Request failed';
+    if (env.DEBUG_NETWORK) {
+      // eslint-disable-next-line no-console
+      console.log('[HTTP ERR]', res.status, url, message);
+    }
     throw { message, status: res.status } as ApiError;
+  }
+  if (env.DEBUG_NETWORK) {
+    // eslint-disable-next-line no-console
+    console.log('[HTTP OK] ', res.status, url, typeof body === 'string' ? body.slice(0, 200) : body);
   }
   return body as T;
 }
@@ -37,6 +62,10 @@ async function requestAbsolute<T>(url: string, options: RequestInit = {}): Promi
   const id = setTimeout(() => controller.abort(), 20000);
   let res: Response;
   try {
+    if (env.DEBUG_NETWORK) {
+      // eslint-disable-next-line no-console
+      console.log('[HTTP] ', options.method || 'GET', url, sanitizeBodyForLog(options.body as any));
+    }
     res = await fetch(url, { ...options, headers, signal: controller.signal });
   } catch (e) {
     clearTimeout(id);
@@ -48,7 +77,15 @@ async function requestAbsolute<T>(url: string, options: RequestInit = {}): Promi
   const body = isJson ? await res.json() : await res.text();
   if (!res.ok) {
     const message = isJson ? (body?.message || 'Request failed') : (body as string) || 'Request failed';
+    if (env.DEBUG_NETWORK) {
+      // eslint-disable-next-line no-console
+      console.log('[HTTP ERR]', res.status, url, message);
+    }
     throw { message, status: res.status } as ApiError;
+  }
+  if (env.DEBUG_NETWORK) {
+    // eslint-disable-next-line no-console
+    console.log('[HTTP OK] ', res.status, url, typeof body === 'string' ? body.slice(0, 200) : body);
   }
   return body as T;
 }
