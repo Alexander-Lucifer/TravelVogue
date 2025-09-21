@@ -22,14 +22,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Try to normalize different backend auth response shapes
   const normalizeAuth = (resp: any): { token?: string; user?: AuthUser } => {
     if (!resp || typeof resp !== 'object') return {};
-    const token = resp.token || resp.accessToken || resp.jwt || resp.idToken;
+    const token = resp.token || resp.accessToken || resp.access_token || resp.jwt || resp.idToken;
     let user: any = resp.user || resp.profile || resp.data?.user || resp.data?.profile;
     if (!user && resp.name && resp.email) {
       user = { id: resp.id || resp.userId || 'unknown', name: resp.name, email: resp.email };
     }
     if (user) {
       user = {
-        id: user.id || user._id || user.userId || 'unknown',
+        id: user.id || user._id || user.userId || user.user_id || 'unknown',
         name: user.name || user.fullName || user.username || 'User',
         email: user.email || user.mail || '',
       } as AuthUser;
@@ -70,16 +70,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const resp = await api.login(payload);
-      if (!resp?.token || !resp?.user) {
+      const { token: nToken, user: nUser } = normalizeAuth(resp);
+      if (!nToken || !nUser) {
         throw new Error('Invalid login response from server');
       }
-      setToken(resp.token);
-      setUser(resp.user);
+      setToken(nToken);
+      setUser(nUser);
       // persist
       if (Storage.isAvailable()) {
         await Promise.all([
-          Storage.setItem('auth_token', resp.token),
-          Storage.setItem('auth_user', JSON.stringify(resp.user)),
+          Storage.setItem('auth_token', nToken),
+          Storage.setItem('auth_user', JSON.stringify(nUser)),
         ]);
       }
     } catch (e: any) {
@@ -95,16 +96,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const resp = await api.signup(payload);
-      if (!resp?.token || !resp?.user) {
+      const { token: nToken, user: nUser } = normalizeAuth(resp);
+      if (!nToken || !nUser) {
         throw new Error('Invalid signup response from server');
       }
-      setToken(resp.token);
-      setUser(resp.user);
+      setToken(nToken);
+      setUser(nUser);
       // persist
       if (Storage.isAvailable()) {
         await Promise.all([
-          Storage.setItem('auth_token', resp.token),
-          Storage.setItem('auth_user', JSON.stringify(resp.user)),
+          Storage.setItem('auth_token', nToken),
+          Storage.setItem('auth_user', JSON.stringify(nUser)),
         ]);
       }
     } catch (e: any) {
