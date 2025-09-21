@@ -80,10 +80,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = useCallback(async (payload: LoginPayload) => {
     setLoading(true);
     setError(null);
-    console.log('[AUTH] Starting login process');
+
     try {
+      console.log('[AUTH] Starting login process');
+
+      if (!payload?.email || !payload?.password) {
+        throw new Error('Email and password are required');
+      }
+
       const resp = await api.login(payload);
-      console.log('[AUTH] Login API response received:', JSON.stringify(resp, null, 2));
+      console.log('[AUTH] Login API response received:', typeof resp);
+
+      if (!resp) {
+        throw new Error('No response from login API');
+      }
+
       const { token: nToken, user: nUser } = normalizeAuth(resp);
       console.log('[AUTH] Normalized auth data:', { hasToken: !!nToken, hasUser: !!nUser });
 
@@ -91,30 +102,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid login response from server (no token)');
       }
 
-      // Set token immediately so App navigates away from AuthScreen
+      // Set token immediately for UI responsiveness
       console.log('[AUTH] Setting token in state');
       setToken(nToken);
 
-      // Set at least a minimal user so UI can render; we'll enrich after profile fetch
-      const baseUser =
-        nUser || ({ id: 'unknown', name: 'User', email: '' } as AuthUser);
+      // Set at least a minimal user so UI can render
+      const baseUser = nUser || ({ id: 'unknown', name: 'User', email: '' } as AuthUser);
       console.log('[AUTH] Setting base user in state:', baseUser);
       setUser(baseUser);
 
       // Persist to storage
       if (Storage.isAvailable()) {
-        await Promise.all([
-          Storage.setItem('auth_token', nToken),
-          Storage.setItem('auth_user', JSON.stringify(baseUser)),
-        ]);
-        console.log('[AUTH] Token and user persisted to storage');
+        try {
+          await Promise.all([
+            Storage.setItem('auth_token', nToken),
+            Storage.setItem('auth_user', JSON.stringify(baseUser)),
+          ]);
+          console.log('[AUTH] Login data persisted to storage');
+        } catch (storageError) {
+          console.warn('[AUTH] Login storage failed:', storageError);
+          // Continue anyway - login was successful
+        }
       }
 
-      // Fetch full profile and merge
+      // Fetch full profile if available
       try {
         console.log('[AUTH] Fetching profile data');
         const prof = await api.getProfile(nToken);
-        console.log('[AUTH] Profile API response:', JSON.stringify(prof, null, 2));
+        console.log('[AUTH] Profile API response:', typeof prof);
 
         if (prof && (prof.name || prof.email || prof.user_id)) {
           const merged: AuthUser = {
@@ -129,21 +144,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           console.log('[AUTH] Merged user data:', merged);
           setUser(merged);
+
           if (Storage.isAvailable()) {
-            await Storage.setItem('auth_user', JSON.stringify(merged));
-            console.log('[AUTH] Updated user persisted to storage');
+            try {
+              await Storage.setItem('auth_user', JSON.stringify(merged));
+              console.log('[AUTH] Updated user persisted to storage');
+            } catch (updateError) {
+              console.warn('[AUTH] User update storage failed:', updateError);
+            }
           }
         }
-      } catch (e) {
-        console.warn('[AUTH] Profile fetch failed, using base user:', (e as any)?.message);
+      } catch (profileError) {
+        console.warn('[AUTH] Profile fetch failed, using base user:', profileError);
+        // Continue with base user - login was still successful
       }
 
       console.log('[AUTH] Login process completed successfully');
     } catch (e: any) {
       const errorMsg = e?.message || 'Login failed';
       console.error('[AUTH] Login error:', errorMsg, e);
+
+      // Reset state on error
+      setToken(null);
+      setUser(null);
       setError(errorMsg);
-      throw e;
+
+      throw new Error(errorMsg);
     } finally {
       setLoading(false);
       console.log('[AUTH] Login process finished, loading set to false');
@@ -196,31 +222,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const devBypass = __DEV__
     ? async () => {
-        console.log('[AUTH] Dev bypass triggered');
-        const testToken = 'dev-token-' + Date.now();
-        const testUser = {
-          id: 'dev-user',
-          name: 'Dev User',
-          email: 'dev@example.com',
-          age: 25,
-          date_of_birth: '1999-01-01',
-          gender: 'Other',
-          phone_number: '1234567890',
-          aadhaar_number: '123456789012'
-        };
+        try {
+          console.log('[AUTH] Dev bypass triggered');
+          const testToken = 'dev-token-' + Date.now();
+          const testUser = {
+            id: 'dev-user',
+            name: 'Dev User',
+            email: 'dev@example.com',
+            age: 25,
+            date_of_birth: '1999-01-01',
+            gender: 'Other',
+            phone_number: '1234567890',
+            aadhaar_number: '123456789012'
+          };
 
-        // Set token and user state
-        setToken(testToken);
-        setUser(testUser);
-        console.log('[AUTH] Dev bypass completed, token set:', testToken);
+          console.log('[AUTH] Dev bypass - setting state and persisting');
 
-        // Persist to storage like login does
-        if (Storage.isAvailable()) {
-          await Promise.all([
-            Storage.setItem('auth_token', testToken),
-            Storage.setItem('auth_user', JSON.stringify(testUser)),
-          ]);
-          console.log('[AUTH] Dev bypass data persisted to storage');
+          // Set token and user state first (immediate UI update)
+          setToken(testToken);
+          setUser(testUser);
+
+          // Persist to storage asynchronously (don't block UI)
+          if (Storage.isAvailable()) {
+            try {
+              await Promise.all([
+                Storage.setItem('auth_token', testToken),
+                Storage.setItem('auth_user', JSON.stringify(testUser)),
+              ]);
+              console.log('[AUTH] Dev bypass data persisted to storage');
+            } catch (storageError) {
+              console.warn('[AUTH] Dev bypass storage failed:', storageError);
+              // Continue anyway - dev bypass should still work
+            }
+          }
+
+          // Small delay to ensure state propagation
+          await new Promise<void>((resolve) => setTimeout(resolve, 50));
+
+          console.log('[AUTH] Dev bypass completed successfully');
+          return { success: true, token: testToken };
+        } catch (error) {
+          console.error('[AUTH] Dev bypass failed:', error);
+          // Reset state if dev bypass fails
+          setToken(null);
+          setUser(null);
+          throw new Error(`Dev bypass failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
     : undefined;

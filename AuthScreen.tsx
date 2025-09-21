@@ -46,6 +46,21 @@ export default function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const { login, signup, loading, error, devBypass } = useAuth();
 
+  // Safety check: ensure we have required auth functions
+  if (!login || !signup) {
+    console.error('[AUTHSCREEN] Missing auth functions');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 16, textAlign: 'center', marginBottom: 20 }}>
+          Authentication Error
+        </Text>
+        <Text style={{ fontSize: 12, textAlign: 'center', color: 'red' }}>
+          Unable to load authentication. Please restart the app.
+        </Text>
+      </View>
+    );
+  }
+
   // Shared fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,10 +79,16 @@ export default function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
   const handleLogin = async () => {
     setLocalError(null);
     try {
+      if (!email || !password) {
+        setLocalError('Please enter email and password');
+        return;
+      }
       await login({ email, password });
+      console.log('[AUTHSCREEN] Login successful, calling onSuccess');
       onSuccess?.();
     } catch (e: any) {
-      // error shown below via context error
+      console.error('[AUTHSCREEN] Login failed:', e);
+      // Error is handled by AuthContext
     }
   };
 
@@ -114,9 +135,11 @@ export default function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
           age: Number(age || '0') || 0,
         }
       );
+      console.log('[AUTHSCREEN] Signup successful, calling onSuccess');
       onSuccess?.();
     } catch (e: any) {
-      // error shown below via context error
+      console.error('[AUTHSCREEN] Signup failed:', e);
+      // Error is handled by AuthContext
     }
   };
 
@@ -228,7 +251,10 @@ export default function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
               style={styles.devBypassBtn}
               onPress={async () => {
                 try {
-                  await devBypass();
+                  console.log('[DEV] Starting dev bypass...');
+                  const result = await devBypass();
+                  console.log('[DEV] Dev bypass result:', result);
+                  console.log('[DEV] Calling onSuccess callback...');
                   onSuccess?.();
                 } catch (error) {
                   console.error('[DEV] Dev bypass failed:', error);
@@ -333,11 +359,13 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   devBypassBtn: {
-    backgroundColor: '#8B5CF6', // Purple color to make it stand out
+    backgroundColor: '#EF4444', // Red color to make it stand out and indicate it's for development
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   devBypassText: {
     color: '#fff',
