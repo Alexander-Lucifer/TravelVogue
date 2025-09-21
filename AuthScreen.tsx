@@ -103,16 +103,17 @@ export default function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
       return;
     }
     try {
-      await signup({
-        name,
-        email,
-        password,
-        phone,
-        aadhar,
-        dob,
-        gender,
-        age: age ? Number(age) : undefined,
-      });
+      await signup(
+        { email, password },
+        {
+          name,
+          phone_number: phone,
+          aadhaar_number: aadhar,
+          date_of_birth: dob,
+          gender,
+          age: Number(age || '0') || 0,
+        }
+      );
       onSuccess?.();
     } catch (e: any) {
       // error shown below via context error

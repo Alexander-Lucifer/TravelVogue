@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import api, { AuthResponse, LoginPayload, SignupPayload } from '../services/api';
+import api, { AuthResponse, LoginPayload, SignupPayload, ProfilePayload } from '../services/api';
 import Storage from '../utils/storage';
 
 export type AuthUser = AuthResponse['user'];
@@ -11,7 +11,7 @@ export type AuthContextValue = {
   error: string | null;
   hydrated: boolean;
   login: (payload: LoginPayload) => Promise<void>;
-  signup: (payload: SignupPayload) => Promise<void>;
+  signup: (payload: SignupPayload, profile?: ProfilePayload) => Promise<void>;
   logout: () => void;
   devBypass?: () => void;
 };
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const signup = useCallback(async (payload: SignupPayload) => {
+  const signup = useCallback(async (payload: SignupPayload, profile?: ProfilePayload) => {
     setLoading(true);
     setError(null);
     try {
@@ -108,6 +108,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           Storage.setItem('auth_token', nToken),
           Storage.setItem('auth_user', JSON.stringify(nUser)),
         ]);
+      }
+      // If profile payload is provided, update profile on backend
+      if (profile && nToken) {
+        try {
+          await api.updateProfile(profile, nToken);
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('Profile update failed:', (e as any)?.message);
+        }
       }
     } catch (e: any) {
       setError(e?.message || 'Signup failed');

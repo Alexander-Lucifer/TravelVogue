@@ -132,14 +132,16 @@ async function requestAbsolute<T>(url: string, options: RequestInit = {}): Promi
 
 export type LoginPayload = { email: string; password: string };
 export type SignupPayload = {
-  name: string;
   email: string;
   password: string;
-  phone?: string;
-  aadhar?: string;
-  dob?: string; // YYYY-MM-DD
-  gender?: string; // 'Male' | 'Female' | 'Other' | etc
-  age?: number;
+};
+export type ProfilePayload = {
+  name: string;
+  phone_number: string;
+  aadhaar_number: string;
+  date_of_birth: string; // YYYY-MM-DD
+  gender: string;
+  age: number;
 };
 export type AuthResponse = { token: string; user: { id: string; name: string; email: string } };
 export type RideItem = { id: string; title: string; date: string; status: 'Completed' | 'Upcoming'; place?: string; price?: string };
@@ -174,6 +176,17 @@ export const api = {
     }),
   // Use absolute endpoint per user request
   signup: (payload: SignupPayload) => requestAbsolute<AuthResponse>('https://sih-km2r.onrender.com/auth/signup', { method: 'POST', body: JSON.stringify(payload) }),
+  // Absolute profile endpoints provided by user
+  updateProfile: (profile: ProfilePayload, token: string) =>
+    requestAbsolute<any>('https://sih-km2r.onrender.com/profile', {
+      method: 'POST',
+      body: JSON.stringify(profile),
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  getProfile: (token: string) =>
+    requestAbsolute<any>('https://sih-km2r.onrender.com/profile', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
   getRides: (token?: string) =>
     request<RideItem[]>('/rides', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
