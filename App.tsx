@@ -77,7 +77,11 @@ function AppNavigator({ showSplash, onSplashFinish }: {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Always show MainStack - bypass authentication */}
+      <Stack.Screen
+        name="Auth"
+        component={AuthScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="Main"
         component={MainStack}

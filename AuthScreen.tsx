@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -46,16 +46,30 @@ export default function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const { login, signup, loading, error, devBypass } = useAuth();
 
+  // Auto-navigate to main app when AuthScreen loads (for development)
+  useEffect(() => {
+    if (__DEV__ && devBypass) {
+      console.log('[AUTHSCREEN] Development mode - auto triggering dev bypass');
+      // Small delay to ensure screen is visible
+      const timer = setTimeout(() => {
+        devBypass();
+        onSuccess?.();
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [devBypass, onSuccess]);
+
   // Safety check: ensure we have required auth functions
-  if (!login || !signup) {
-    console.error('[AUTHSCREEN] Missing auth functions');
+  if (!devBypass) {
+    console.error('[AUTHSCREEN] Missing devBypass function');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
         <Text style={{ fontSize: 16, textAlign: 'center', marginBottom: 20 }}>
-          Authentication Error
+          Development Mode
         </Text>
-        <Text style={{ fontSize: 12, textAlign: 'center', color: 'red' }}>
-          Unable to load authentication. Please restart the app.
+        <Text style={{ fontSize: 12, textAlign: 'center', color: 'green' }}>
+          Auto-navigating to main app...
         </Text>
       </View>
     );
