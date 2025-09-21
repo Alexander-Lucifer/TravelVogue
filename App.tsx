@@ -5,7 +5,7 @@
  * @format
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar, useColorScheme, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -41,16 +41,29 @@ function App() {
 
 function AppContent() {
   const { token, hydrated } = useAuth();
+  
+  // Debug: Log auth state changes
+  useEffect(() => {
+    console.log('[APP] Auth state changed:', { hasToken: !!token, hydrated });
+  }, [token, hydrated]);
+
   if (!hydrated) {
+    console.log('[APP] App not hydrated yet, showing loading');
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
       </View>
     );
   }
+  
+  console.log('[APP] Rendering app content. Token exists:', !!token);
+  
   if (!token) {
+    console.log('[APP] No token, showing AuthScreen');
     return <AuthScreen />;
   }
+  
+  console.log('[APP] Token exists, showing MainStack');
   return <MainStack />;
 }
 
