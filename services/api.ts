@@ -75,7 +75,7 @@ export const api = {
   login: (payload: LoginPayload) =>
     requestAbsolute<AuthResponse>('https://sih-km2r.onrender.com/auth/login', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, secret_key: env.SECRET_KEY }),
     }),
   // Use absolute endpoint per user request
   signup: (payload: SignupPayload) => requestAbsolute<AuthResponse>('https://sih-km2r.onrender.com/auth/signup', { method: 'POST', body: JSON.stringify(payload) }),
