@@ -19,6 +19,24 @@ export type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Try to normalize different backend auth response shapes
+  const normalizeAuth = (resp: any): { token?: string; user?: AuthUser } => {
+    if (!resp || typeof resp !== 'object') return {};
+    const token = resp.token || resp.accessToken || resp.jwt || resp.idToken;
+    let user: any = resp.user || resp.profile || resp.data?.user || resp.data?.profile;
+    if (!user && resp.name && resp.email) {
+      user = { id: resp.id || resp.userId || 'unknown', name: resp.name, email: resp.email };
+    }
+    if (user) {
+      user = {
+        id: user.id || user._id || user.userId || 'unknown',
+        name: user.name || user.fullName || user.username || 'User',
+        email: user.email || user.mail || '',
+      } as AuthUser;
+    }
+    return { token, user };
+  };
+
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(false);
