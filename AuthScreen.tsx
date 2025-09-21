@@ -249,16 +249,11 @@ export default function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
           <View style={{ marginTop: 8 }}>
             <TouchableOpacity
               style={styles.devBypassBtn}
-              onPress={async () => {
-                try {
-                  console.log('[DEV] Starting dev bypass...');
-                  const result = await devBypass();
-                  console.log('[DEV] Dev bypass result:', result);
-                  console.log('[DEV] Calling onSuccess callback...');
-                  onSuccess?.();
-                } catch (error) {
-                  console.error('[DEV] Dev bypass failed:', error);
-                }
+              onPress={() => {
+                console.log('[DEV] Starting dev bypass...');
+                devBypass();
+                console.log('[DEV] Calling onSuccess callback...');
+                onSuccess?.();
               }}
             >
               <Text style={styles.devBypassText}>Continue (Dev Bypass)</Text>
@@ -359,13 +354,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   devBypassBtn: {
-    backgroundColor: '#EF4444', // Red color to make it stand out and indicate it's for development
+    backgroundColor: '#8B5CF6', // Purple color to make it stand out
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 8,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   devBypassText: {
     color: '#fff',

@@ -221,53 +221,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const devBypass = __DEV__
-    ? async () => {
-        try {
-          console.log('[AUTH] Dev bypass triggered');
-          const testToken = 'dev-token-' + Date.now();
-          const testUser = {
-            id: 'dev-user',
-            name: 'Dev User',
-            email: 'dev@example.com',
-            age: 25,
-            date_of_birth: '1999-01-01',
-            gender: 'Other',
-            phone_number: '1234567890',
-            aadhaar_number: '123456789012'
-          };
+    ? () => {
+        console.log('[AUTH] Dev bypass triggered');
+        const testToken = 'dev-token-' + Date.now();
+        const testUser = {
+          id: 'dev-user',
+          name: 'Dev User',
+          email: 'dev@example.com',
+          age: 25,
+          date_of_birth: '1999-01-01',
+          gender: 'Other',
+          phone_number: '1234567890',
+          aadhaar_number: '123456789012'
+        };
 
-          console.log('[AUTH] Dev bypass - setting state and persisting');
+        // Set token and user state immediately
+        setToken(testToken);
+        setUser(testUser);
 
-          // Set token and user state first (immediate UI update)
-          setToken(testToken);
-          setUser(testUser);
-
-          // Persist to storage asynchronously (don't block UI)
-          if (Storage.isAvailable()) {
-            try {
-              await Promise.all([
-                Storage.setItem('auth_token', testToken),
-                Storage.setItem('auth_user', JSON.stringify(testUser)),
-              ]);
-              console.log('[AUTH] Dev bypass data persisted to storage');
-            } catch (storageError) {
-              console.warn('[AUTH] Dev bypass storage failed:', storageError);
-              // Continue anyway - dev bypass should still work
-            }
-          }
-
-          // Small delay to ensure state propagation
-          await new Promise<void>((resolve) => setTimeout(resolve, 50));
-
-          console.log('[AUTH] Dev bypass completed successfully');
-          return { success: true, token: testToken };
-        } catch (error) {
-          console.error('[AUTH] Dev bypass failed:', error);
-          // Reset state if dev bypass fails
-          setToken(null);
-          setUser(null);
-          throw new Error(`Dev bypass failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Persist to storage (don't await - let it happen in background)
+        if (Storage.isAvailable()) {
+          Storage.setItem('auth_token', testToken).catch(e =>
+            console.warn('[AUTH] Dev bypass token storage failed:', e)
+          );
+          Storage.setItem('auth_user', JSON.stringify(testUser)).catch(e =>
+            console.warn('[AUTH] Dev bypass user storage failed:', e)
+          );
         }
+
+        console.log('[AUTH] Dev bypass completed, token set:', testToken);
       }
     : undefined;
 
