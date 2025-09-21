@@ -18,6 +18,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
   const [showSplash, setShowSplash] = useState(true);
+  const [navigationKey, setNavigationKey] = useState(0);
 
   const handleSplashFinish = () => {
     setShowSplash(false);
@@ -25,13 +26,13 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer key={`nav-${navigationKey}`}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         {showSplash ? (
           <SplashScreen onFinish={handleSplashFinish} />
         ) : (
           <AuthProvider>
-            <AppContent />
+            <AppContent onNavigationChange={() => setNavigationKey(prev => prev + 1)} />
           </AuthProvider>
         )}
       </NavigationContainer>
@@ -39,7 +40,7 @@ function App() {
   );
 }
 
-function AppContent() {
+function AppContent({ onNavigationChange }: { onNavigationChange?: () => void }) {
   const { token, hydrated } = useAuth();
 
   // Debug: Log auth state changes
@@ -68,6 +69,13 @@ function AppContent() {
   }
 
   console.log('[APP] Token exists, showing MainStack');
+  // Trigger navigation change when token is set
+  useEffect(() => {
+    if (token && onNavigationChange) {
+      onNavigationChange();
+    }
+  }, [token, onNavigationChange]);
+
   return <MainStack />;
 }
 
