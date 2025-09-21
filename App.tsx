@@ -5,20 +5,22 @@
  * @format
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar, useColorScheme, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from './SplashScreen';
 import AuthScreen from './AuthScreen';
-import RootTabs from './navigation/RootTabs';
 import MainStack from './navigation/MainStack';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+const Stack = createNativeStackNavigator();
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
   const [showSplash, setShowSplash] = useState(true);
-  const [navigationKey, setNavigationKey] = useState(0);
+  const navigationRef = useRef<any>(null);
 
   const handleSplashFinish = () => {
     setShowSplash(false);
@@ -26,34 +28,43 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer key={`nav-${navigationKey}`}>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={() => {
+          console.log('[APP] Navigation container is ready');
+        }}
+      >
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        {showSplash ? (
-          <SplashScreen onFinish={handleSplashFinish} />
-        ) : (
-          <AuthProvider>
-            <AppContent onNavigationChange={() => setNavigationKey(prev => prev + 1)} />
-          </AuthProvider>
-        )}
+        <AuthProvider>
+          <AppNavigator showSplash={showSplash} onSplashFinish={handleSplashFinish} navigationRef={navigationRef} />
+        </AuthProvider>
       </NavigationContainer>
     </SafeAreaProvider>
   );
 }
 
-function AppContent({ onNavigationChange }: { onNavigationChange?: () => void }) {
+function AppNavigator({ showSplash, onSplashFinish, navigationRef }: {
+  showSplash: boolean;
+  onSplashFinish: () => void;
+  navigationRef: any;
+}) {
   const { token, hydrated } = useAuth();
 
   // Debug: Log auth state changes
   useEffect(() => {
-    console.log('[APP] Auth state changed:', {
+    console.log('[NAVIGATOR] Auth state changed:', {
       hasToken: !!token,
       hydrated,
-      tokenLength: token?.length || 0
+      showSplash
     });
-  }, [token, hydrated]);
+  }, [token, hydrated, showSplash]);
+
+  if (showSplash) {
+    return <SplashScreen onFinish={onSplashFinish} />;
+  }
 
   if (!hydrated) {
-    console.log('[APP] App not hydrated yet, showing loading');
+    console.log('[NAVIGATOR] App not hydrated yet, showing loading');
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator />
@@ -61,22 +72,25 @@ function AppContent({ onNavigationChange }: { onNavigationChange?: () => void })
     );
   }
 
-  console.log('[APP] Rendering app content. Token exists:', !!token, 'Token value:', token ? '***' + token.slice(-4) : 'null');
+  console.log('[NAVIGATOR] Rendering navigator. Token exists:', !!token);
 
-  if (!token) {
-    console.log('[APP] No token, showing AuthScreen');
-    return <AuthScreen />;
-  }
-
-  console.log('[APP] Token exists, showing MainStack');
-  // Trigger navigation change when token is set
-  useEffect(() => {
-    if (token && onNavigationChange) {
-      onNavigationChange();
-    }
-  }, [token, onNavigationChange]);
-
-  return <MainStack />;
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!token ? (
+        <Stack.Screen
+          name="Auth"
+          component={AuthScreen}
+          options={{ headerShown: false }}
+        />
+      ) : (
+        <Stack.Screen
+          name="Main"
+          component={MainStack}
+          options={{ headerShown: false }}
+        />
+      )}
+    </Stack.Navigator>
+  );
 }
 
 export default App;

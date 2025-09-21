@@ -195,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const devBypass = __DEV__
-    ? () => {
+    ? async () => {
         console.log('[AUTH] Dev bypass triggered');
         const testToken = 'dev-token-' + Date.now();
         const testUser = {
@@ -208,9 +208,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           phone_number: '1234567890',
           aadhaar_number: '123456789012'
         };
+
+        // Set token and user state
         setToken(testToken);
         setUser(testUser);
         console.log('[AUTH] Dev bypass completed, token set:', testToken);
+
+        // Persist to storage like login does
+        if (Storage.isAvailable()) {
+          await Promise.all([
+            Storage.setItem('auth_token', testToken),
+            Storage.setItem('auth_user', JSON.stringify(testUser)),
+          ]);
+          console.log('[AUTH] Dev bypass data persisted to storage');
+        }
       }
     : undefined;
 
