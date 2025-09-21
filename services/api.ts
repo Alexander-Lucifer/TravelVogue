@@ -29,7 +29,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       // eslint-disable-next-line no-console
       console.log('[HTTP] ', options.method || 'GET', url, sanitizeBodyForLog(options.body as any));
     }
-    res = await fetch(url, { ...options, headers, signal: controller.signal });
+    // Retry up to 2 times on network error or 5xx
+    let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        res = await fetch(url, { ...options, headers, signal: controller.signal });
+        if (res.status >= 500 && res.status < 600 && attempt < 2) {
+          attempt++;
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 500 * attempt));
+          continue;
+        }
+        break;
+      } catch (e) {
+        if (attempt < 2) {
+          attempt++;
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 500 * attempt));
+          continue;
+        }
+        throw e;
+      }
+    }
   } catch (e) {
     clearTimeout(id);
     throw { message: (e as Error)?.message || 'Network error', status: undefined } as ApiError;
@@ -66,7 +86,27 @@ async function requestAbsolute<T>(url: string, options: RequestInit = {}): Promi
       // eslint-disable-next-line no-console
       console.log('[HTTP] ', options.method || 'GET', url, sanitizeBodyForLog(options.body as any));
     }
-    res = await fetch(url, { ...options, headers, signal: controller.signal });
+    // Retry up to 2 times on network error or 5xx
+    let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        res = await fetch(url, { ...options, headers, signal: controller.signal });
+        if (res.status >= 500 && res.status < 600 && attempt < 2) {
+          attempt++;
+          await new Promise<void>((resolve) => setTimeout(resolve, 500 * attempt));
+          continue;
+        }
+        break;
+      } catch (e) {
+        if (attempt < 2) {
+          attempt++;
+          await new Promise<void>((resolve) => setTimeout(resolve, 500 * attempt));
+          continue;
+        }
+        throw e;
+      }
+    }
   } catch (e) {
     clearTimeout(id);
     throw { message: (e as Error)?.message || 'Network error', status: undefined } as ApiError;
