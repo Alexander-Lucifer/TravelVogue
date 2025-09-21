@@ -13,6 +13,7 @@ const TEAL = '#2FB7A6';
 const BG = '#F5F5E6';
 
 export default function RootTabs() {
+  console.log('[NAV] RootTabs rendered');
   return (
     <Tab.Navigator
       screenOptions={({ route }: { route: any }) => ({

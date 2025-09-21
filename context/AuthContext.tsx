@@ -61,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           Storage.getItem('auth_token'),
           Storage.getItem('auth_user'),
         ]);
+        console.log('[AUTH] Hydrating from storage:', { storedToken: !!storedToken, storedUser: !!storedUser });
         if (storedToken) setToken(storedToken);
         if (storedUser) {
           try {
@@ -71,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } finally {
         setHydrated(true);
+        console.log('[AUTH] Hydration complete');
       }
     })();
   }, []);
@@ -78,30 +80,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = useCallback(async (payload: LoginPayload) => {
     setLoading(true);
     setError(null);
+    console.log('[AUTH] Starting login process');
     try {
       const resp = await api.login(payload);
+      console.log('[AUTH] Login API response received:', JSON.stringify(resp, null, 2));
       const { token: nToken, user: nUser } = normalizeAuth(resp);
+      console.log('[AUTH] Normalized auth data:', { hasToken: !!nToken, hasUser: !!nUser });
+
       if (!nToken) {
         throw new Error('Invalid login response from server (no token)');
       }
+
       // Set token immediately so App navigates away from AuthScreen
+      console.log('[AUTH] Setting token in state');
       setToken(nToken);
+
       // Set at least a minimal user so UI can render; we'll enrich after profile fetch
       const baseUser =
         nUser || ({ id: 'unknown', name: 'User', email: '' } as AuthUser);
+      console.log('[AUTH] Setting base user in state:', baseUser);
       setUser(baseUser);
-      // eslint-disable-next-line no-console
-      console.log('[AUTH] login success, token set, fetching profile...');
-      // persist
+
+      // Persist to storage
       if (Storage.isAvailable()) {
         await Promise.all([
           Storage.setItem('auth_token', nToken),
           Storage.setItem('auth_user', JSON.stringify(baseUser)),
         ]);
+        console.log('[AUTH] Token and user persisted to storage');
       }
+
       // Fetch full profile and merge
       try {
+        console.log('[AUTH] Fetching profile data');
         const prof = await api.getProfile(nToken);
+        console.log('[AUTH] Profile API response:', JSON.stringify(prof, null, 2));
+
         if (prof && (prof.name || prof.email || prof.user_id)) {
           const merged: AuthUser = {
             id: (prof.user_id || prof.id || baseUser.id) as string,
@@ -113,20 +127,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone_number: prof.phone_number ?? baseUser.phone_number,
             aadhaar_number: prof.aadhaar_number ?? baseUser.aadhaar_number,
           };
+          console.log('[AUTH] Merged user data:', merged);
           setUser(merged);
           if (Storage.isAvailable()) {
             await Storage.setItem('auth_user', JSON.stringify(merged));
+            console.log('[AUTH] Updated user persisted to storage');
           }
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('Profile fetch after login failed:', (e as any)?.message);
+        console.warn('[AUTH] Profile fetch failed, using base user:', (e as any)?.message);
       }
+
+      console.log('[AUTH] Login process completed successfully');
     } catch (e: any) {
-      setError(e?.message || 'Login failed');
+      const errorMsg = e?.message || 'Login failed';
+      console.error('[AUTH] Login error:', errorMsg, e);
+      setError(errorMsg);
       throw e;
     } finally {
       setLoading(false);
+      console.log('[AUTH] Login process finished, loading set to false');
     }
   }, []);
 
@@ -176,8 +196,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const devBypass = __DEV__
     ? () => {
-        setToken('dev-token');
-        setUser({ id: 'dev', name: 'Dev User', email: 'dev@example.com' });
+        console.log('[AUTH] Dev bypass triggered');
+        const testToken = 'dev-token-' + Date.now();
+        const testUser = {
+          id: 'dev-user',
+          name: 'Dev User',
+          email: 'dev@example.com',
+          age: 25,
+          date_of_birth: '1999-01-01',
+          gender: 'Other',
+          phone_number: '1234567890',
+          aadhaar_number: '123456789012'
+        };
+        setToken(testToken);
+        setUser(testUser);
+        console.log('[AUTH] Dev bypass completed, token set:', testToken);
       }
     : undefined;
 

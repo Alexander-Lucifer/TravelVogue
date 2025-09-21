@@ -6,6 +6,7 @@ import PlanTripScreen from '../screens/PlanTripScreen';
 const Stack = createNativeStackNavigator();
 
 export default function MainStack() {
+  console.log('[NAV] MainStack rendered');
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={RootTabs} />

@@ -41,10 +41,14 @@ function App() {
 
 function AppContent() {
   const { token, hydrated } = useAuth();
-  
+
   // Debug: Log auth state changes
   useEffect(() => {
-    console.log('[APP] Auth state changed:', { hasToken: !!token, hydrated });
+    console.log('[APP] Auth state changed:', {
+      hasToken: !!token,
+      hydrated,
+      tokenLength: token?.length || 0
+    });
   }, [token, hydrated]);
 
   if (!hydrated) {
@@ -55,14 +59,14 @@ function AppContent() {
       </View>
     );
   }
-  
-  console.log('[APP] Rendering app content. Token exists:', !!token);
-  
+
+  console.log('[APP] Rendering app content. Token exists:', !!token, 'Token value:', token ? '***' + token.slice(-4) : 'null');
+
   if (!token) {
     console.log('[APP] No token, showing AuthScreen');
     return <AuthScreen />;
   }
-  
+
   console.log('[APP] Token exists, showing MainStack');
   return <MainStack />;
 }
