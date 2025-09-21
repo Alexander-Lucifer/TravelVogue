@@ -1,9 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
-import env from '../config/env';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -11,60 +9,18 @@ const BG = '#F5F5E6';
 const TEAL = '#2FB7A6';
 const CARD = '#FFFFFF';
 
-type Ride = { id: string; title: string; date: string; status: 'Completed' | 'Upcoming' };
-
 export default function HomeScreen() {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const [rides, setRides] = useState<Ride[]>([]);
-  const [vehicleType, setVehicleType] = useState<string | null>(null);
-  const [passengerCount, setPassengerCount] = useState<number | null>(null);
-  const [tripsCount, setTripsCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const loadRides = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [data, stats] = await Promise.all([
-        api.getMyTrips(token || undefined),
-        api.getStats(token || undefined).catch(() => null),
-      ]);
-      setRides(data);
-      if (stats) {
-        setVehicleType(stats.vehicleType || 'Car');
-        setPassengerCount(stats.passengerCount || 1);
-        setTripsCount(stats.tripsCount);
-      } else {
-        setVehicleType('Car');
-        setPassengerCount(1);
-      }
-    } catch (e: any) {
-      setError(e?.message || 'Failed to load rides');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadRides();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadRides();
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  // Use hardcoded placeholder data
+  const vehicleType = 'SUV';
+  const passengerCount = 4;
+  const tripsCount = 3;
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.avatar} />
@@ -79,19 +35,7 @@ export default function HomeScreen() {
         <View style={styles.grid}>
           <View style={styles.card}>
             <View style={styles.iconCircle}><Ionicons name="earth-outline" size={18} color={TEAL} /></View>
-            <Text style={styles.cardTitle}>
-              {(() => {
-                try {
-                  if (vehicleType != null) {
-                    return vehicleType;
-                  }
-                  return '—';
-                } catch (error) {
-                  console.warn('[HomeScreen] Error displaying vehicle type:', error);
-                  return '—';
-                }
-              })()}
-            </Text>
+            <Text style={styles.cardTitle}>{vehicleType}</Text>
             <Text style={styles.cardSubtitle}>Vehicle Type</Text>
           </View>
           <View style={styles.card}>
@@ -101,19 +45,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.card}>
             <View style={styles.iconCircle}><Ionicons name="cash-outline" size={18} color={TEAL} /></View>
-            <Text style={styles.cardTitle}>
-              {(() => {
-                try {
-                  if (passengerCount != null && !isNaN(passengerCount)) {
-                    return `${passengerCount} Passengers`;
-                  }
-                  return '1 Passenger';
-                } catch (error) {
-                  console.warn('[HomeScreen] Error displaying passenger count:', error);
-                  return '1 Passenger';
-                }
-              })()}
-            </Text>
+            <Text style={styles.cardTitle}>{passengerCount} Passengers</Text>
             <Text style={styles.cardSubtitle}>Passenger Count</Text>
           </View>
           <View style={styles.card}>
@@ -155,24 +87,22 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Recent Activity</Text>
-        {loading ? (
-          <ActivityIndicator color={TEAL} />
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : rides.length === 0 ? (
-          <Text style={styles.itemSub}>No rides found.</Text>
-        ) : (
-          rides.map((ride, idx) => (
-            <View key={ride.id} style={styles.listItem}>
-              <View style={styles.thumb} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle}>{ride.title}</Text>
-                <Text style={styles.itemSub}>{ride.date}</Text>
-              </View>
-              <Text style={[styles.itemMeta, ride.status === 'Upcoming' && { color: '#F59E0B' }]}>{ride.status}</Text>
-            </View>
-          ))
-        )}
+        <View style={styles.listItem}>
+          <View style={styles.thumb} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.itemTitle}>Mumbai to Pune</Text>
+            <Text style={styles.itemSub}>2024-01-15</Text>
+          </View>
+          <Text style={[styles.itemMeta, { color: '#10B981' }]}>Completed</Text>
+        </View>
+        <View style={styles.listItem}>
+          <View style={styles.thumb} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.itemTitle}>Delhi to Jaipur</Text>
+            <Text style={styles.itemSub}>2024-01-20</Text>
+          </View>
+          <Text style={[styles.itemMeta, { color: '#F59E0B' }]}>Upcoming</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -200,5 +130,4 @@ const styles = StyleSheet.create({
   itemTitle: { fontWeight: '600', color: '#111827' },
   itemSub: { color: '#6B7280', marginTop: 2 },
   itemMeta: { color: TEAL, fontWeight: '700' },
-  errorText: { color: '#B91C1C', marginTop: 4 },
 });
